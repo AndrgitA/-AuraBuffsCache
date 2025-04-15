@@ -15,7 +15,22 @@ local function Print(...)
   DEFAULT_CHAT_FRAME:AddMessage(result, .5, 1, .3)
 end
 
-local _UnitBuff, _UnitDebuff = UnitBuff, UnitDebuff
+AuraBuffsCacheFrame = CreateFrame("Frame", nil, UIParent);
+
+---Генерирует ключ для таблицы по входным данным
+---@param icon string
+---@param spellID number
+---@return string
+AuraBuffsCacheFrame.CreateCacheName = function (icon, spellID)
+  return icon.."__"..spellID;
+end
+
+---Original UnitBuff function
+AuraBuffsCacheFrame._UnitBuff = UnitBuff;
+
+---Original UnitDebuff function
+AuraBuffsCacheFrame._UnitDebuff = UnitDebuff;
+
 local _buffLimit = 64;
 local _debuffLimit = 16;
 
@@ -27,23 +42,16 @@ local function addDebuffToCache(key, value)
   ABCache_Table[key] = value;
 end 
 
----Генерирует ключ для таблицы по входным данным
----@param icon string
----@param spellID number
----@return string
-local function createCacheKey(icon, spellID)
-  return icon.."__"..spellID;
-end
 
-UnitBuff = function(unit, index, filter)
+AuraBuffsCacheFrame.UnitBuff = function (unit, index, filter)
   -- print("UnitBuff:: unit: "..tostring(unit)..";index: "..tostring(index)..";filter: ", tostring(filter))
-  local name, count, icon, rank, debuffType, duration, expirationTime = _UnitBuff(unit, index, filter);
+  local name, count, icon, rank, debuffType, duration, expirationTime = AuraBuffsCacheFrame._UnitBuff(unit, index, filter);
 
   if (not name) then
     return nil, nil, nil, nil, nil, nil, nil;
   end
 
-  local key = createCacheKey(name, icon);
+  local key = AuraBuffsCacheFrame.CreateCacheName(name, icon);
   -- It's cached debuffs
   if (ABCache_Table[key]) then
     return nil, nil, nil, nil, nil, nil, nil;
@@ -52,13 +60,14 @@ UnitBuff = function(unit, index, filter)
   -- Print("BUFF:: unit: "..unit..";name: "..name..";rank: ", rank, ";icon: ", icon, ";count: ", count, ";debuffType: ", debuffType, ";duration: ", duration)
   return name, count, icon, rank, debuffType, duration, expirationTime;
 end
+UnitBuff = AuraBuffsCacheFrame.UnitBuff;
 
 ---Получение данных о дебаффе из списка баффов
 ---@param unit  string
 ---@param index number
 ---@param filter string
 ---@return string name, number count, string debuffType, string icon, number rank, number duration, number expirationTime;
-local function getDebuffInBuffs(unit, index, filter)
+AuraBuffsCacheFrame.getDebuffInBuffs = function (unit, index, filter)
   local indexDebuff = index - _debuffLimit;
   local countDebuffInBuff = 0;
   
@@ -67,13 +76,13 @@ local function getDebuffInBuffs(unit, index, filter)
   
   
   for i=1,_buffLimit do 
-    local name, _, icon = _UnitBuff(unit, i);
+    local name, _, icon = AuraBuffsCacheFrame._UnitBuff(unit, i);
 
     if (not name) then
       break;
     end
 
-    buffKey = createCacheKey(name, icon);
+    buffKey = AuraBuffsCacheFrame.CreateCacheName(name, icon);
     if (ABCache_Table[buffKey]) then
       countDebuffInBuff = countDebuffInBuff + 1;
       if (countDebuffInBuff == indexDebuff) then
@@ -85,7 +94,7 @@ local function getDebuffInBuffs(unit, index, filter)
 
   -- Я нашел нужный мне дебафф в баффах.
   if (indexDebuffInBuff > 0) then
-    local name, count, icon, rank, debuffType, duration, expirationTime = _UnitBuff(unit, indexDebuffInBuff);
+    local name, count, icon, rank, debuffType, duration, expirationTime = AuraBuffsCacheFrame._UnitBuff(unit, indexDebuffInBuff);
     local cachedValue = ABCache_Table[buffKey];
     
     debuffType = debuffType or cachedValue.debuffType;
@@ -109,19 +118,19 @@ local function getDebuffInBuffs(unit, index, filter)
   return nil, nil, nil, nil, nil, nil, nil;
 end
 
-UnitDebuff = function(unit, index, filter)
+AuraBuffsCacheFrame.UnitDebuff = function (unit, index, filter)
   -- fixed limit client vanilla to check UnitBuff
   -- if index > 16 (hard value in this clown client ^*^)
   if (index > _debuffLimit) then
-    return getDebuffInBuffs(unit, index, filter);
+    return AuraBuffsCacheFrame.getDebuffInBuffs(unit, index, filter);
   end
 
-  local name, count, debuffType, icon, rank, duration, expirationTime = _UnitDebuff(unit, index, filter);
+  local name, count, debuffType, icon, rank, duration, expirationTime = AuraBuffsCacheFrame._UnitDebuff(unit, index, filter);
   if (not name) then
     return nil, nil, nil, nil, nil, nil, nil;
   end
   -- Print("DEBUFF:: unit: "..unit..";name: "..name..";rank: ", rank, ";icon: ", icon, ";count: ", count, ";debuffType: ", debuffType, ";duration: ", duration)
-  local key = createCacheKey(name, icon);
+  local key = AuraBuffsCacheFrame.CreateCacheName(name, icon);
   -- check cache for add new debuff
   if (not ABCache_Table[key]) then
     addDebuffToCache(key, {
@@ -137,3 +146,4 @@ UnitDebuff = function(unit, index, filter)
   
   return name, count, debuffType, icon, rank, duration, expirationTime;
 end
+UnitDebuff = AuraBuffsCacheFrame.UnitDebuff;
