@@ -22,7 +22,7 @@ AuraBuffsCacheFrame = CreateFrame("Frame", nil, UIParent);
 ---@param spellID number
 ---@return string
 AuraBuffsCacheFrame.CreateCacheName = function (icon, spellID)
-  return icon.."__"..spellID;
+  return tostring(icon).."__"..tostring(spellID);
 end
 
 ---Original UnitBuff function
@@ -74,9 +74,10 @@ AuraBuffsCacheFrame.getDebuffInBuffs = function (unit, index, filter)
   local indexDebuffInBuff = 0;
   local buffKey = nil
   
+  local name, count, icon, rank, debuffType, duration, expirationTime = nil, nil, nil, nil, nil, nil, nil;
   
   for i=1,_buffLimit do 
-    local name, _, icon = AuraBuffsCacheFrame._UnitBuff(unit, i);
+    name, count, icon, rank, debuffType, duration, expirationTime = AuraBuffsCacheFrame._UnitBuff(unit, i);
 
     if (not name) then
       break;
@@ -94,24 +95,24 @@ AuraBuffsCacheFrame.getDebuffInBuffs = function (unit, index, filter)
 
   -- Я нашел нужный мне дебафф в баффах.
   if (indexDebuffInBuff > 0) then
-    local name, count, icon, rank, debuffType, duration, expirationTime = AuraBuffsCacheFrame._UnitBuff(unit, indexDebuffInBuff);
+    -- local name, count, icon, rank, debuffType, duration, expirationTime = AuraBuffsCacheFrame._UnitBuff(unit, indexDebuffInBuff);
     local cachedValue = ABCache_Table[buffKey];
     
     debuffType = debuffType or cachedValue.debuffType;
     rank = rank or cachedValue.rank;
 
-    local newKey = buffKey.."_inBuff";
-    if (not ABCache_Table[newKey]) then
-      addDebuffToCache(newKey, {
-        name = name,
-        -- count = count,
-        debuffType = debuffType,
-        icon = icon,
-        rank = rank,
-        -- duration = duration,
-        -- expirationTime = expirationTime
-      });
-    end
+    -- local newKey = buffKey.."_inBuff";
+    -- if (not ABCache_Table[newKey]) then
+    --   addDebuffToCache(newKey, {
+    --     name = name,
+    --     -- count = count,
+    --     debuffType = debuffType,
+    --     icon = icon,
+    --     rank = rank,
+    --     -- duration = duration,
+    --     -- expirationTime = expirationTime
+    --   });
+    -- end
     return name, count, debuffType, icon, rank, duration, expirationTime;
   end
   
