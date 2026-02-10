@@ -1,5 +1,4 @@
 ABCache_Storage = {};
-
 ---Локальная функция принта
 ---@param ... unknown
 ---@return void
@@ -19,18 +18,52 @@ end
 local _UnitDebuff, _UnitBuff = UnitDebuff, UnitBuff;
 
 AuraBuffsCacheFrame = CreateFrame("Frame", nil, UIParent);
+local flatStorage;
+
+local function InitAddonStorage()
+  if (not ABCache_Storage) then
+    ABCache_Storage = {};
+  end
+
+  flatStorage = {};
+  for name, valueByName in pairs(ABCache_Storage) do
+    if (valueByName) then
+      for id, _ in pairs(valueByName) do
+        if (not flatStorage[id]) then
+          flatStorage[id] = {
+            name = name,
+            icon = id,
+            debuffType = ABCache_Storage[name][id].debuffType,
+            rank = ABCache_Storage[name][id].rank,
+          };
+        end
+      end 
+    end
+  end
+
+  AuraBuffsCacheFrame.flatStorage = flatStorage;
+end
+
+
+AuraBuffsCacheFrame:RegisterEvent("VARIABLES_LOADED");
+AuraBuffsCacheFrame:SetScript("OnEvent", function() 
+  this:UnregisterAllEvents();
+  if (event == "VARIABLES_LOADED") then
+    InitAddonStorage();
+  end
+end);
 
 -- Check value in storage
-AuraBuffsCacheFrame.GetStorageValue = function(name, id)
-  if (not name or not id) then
+function AuraBuffsCacheFrame.GetStorageValue(id)
+  if (not id) then
     return nil;
   end
 
-  return ABCache_Storage[name] and ABCache_Storage[name][id];
+  return flatStorage[id];
 end
 
 -- Create value in storage
-AuraBuffsCacheFrame.CreateStorageValue = function(name, id, debuffType, rank)
+function AuraBuffsCacheFrame.CreateStorageValue(name, id, debuffType, rank)
   if (not name or not id) then
     return;
   end
@@ -43,7 +76,14 @@ AuraBuffsCacheFrame.CreateStorageValue = function(name, id, debuffType, rank)
     debuffType = debuffType,
     rank = rank,
   };
-  return ABCache_Storage[name][id];
+
+  flatStorage[id] = {
+    name = name,
+    icon = id,
+    debuffType = debuffType,
+    rank = rank,
+  };
+  return flatStorage[id];
 end
 
 ---Original UnitBuff function
@@ -55,13 +95,13 @@ AuraBuffsCacheFrame._UnitDebuff = _UnitDebuff;
 local _buffLimit = 64;
 local _debuffLimit = 16;
 
-AuraBuffsCacheFrame.UnitBuff = function (unit, index, filter)
+function AuraBuffsCacheFrame.UnitBuff(unit, index, filter)
   local name, count, icon, rank, debuffType, duration, expirationTime = _UnitBuff(unit, index, filter);
 
   -- Bad data or it's debuff signature
   if (
     not name or
-    AuraBuffsCacheFrame.GetStorageValue(name, icon)
+    AuraBuffsCacheFrame.GetStorageValue(icon)
   ) then
     return nil, nil, nil, nil, nil, nil, nil;
   end
@@ -75,7 +115,7 @@ UnitBuff = AuraBuffsCacheFrame.UnitBuff;
 ---@param index number
 ---@param filter string
 ---@return string name, number count, string debuffType, string icon, number rank, number duration, number expirationTime;
-AuraBuffsCacheFrame.getDebuffInBuffs = function (unit, index, filter)
+function AuraBuffsCacheFrame.getDebuffInBuffs(unit, index, filter)
   local indexDebuff = index - _debuffLimit;
   local countDebuffInBuff = 0;
   
@@ -91,7 +131,7 @@ AuraBuffsCacheFrame.getDebuffInBuffs = function (unit, index, filter)
       break;
     end
 
-    cachedValue = AuraBuffsCacheFrame.GetStorageValue(name, icon);
+    cachedValue = AuraBuffsCacheFrame.GetStorageValue(icon);
     -- it's actually debuff
     if (cachedValue) then
       countDebuffInBuff = countDebuffInBuff + 1;
@@ -114,7 +154,7 @@ AuraBuffsCacheFrame.getDebuffInBuffs = function (unit, index, filter)
   return nil, nil, nil, nil, nil, nil, nil;
 end
 
-AuraBuffsCacheFrame.UnitDebuff = function (unit, index, filter)
+function AuraBuffsCacheFrame.UnitDebuff(unit, index, filter)
   -- fixed limit client vanilla to check UnitBuff
   -- if index > 16 (hard value in this clown client ^*^)
   if (index > _debuffLimit) then
@@ -127,7 +167,7 @@ AuraBuffsCacheFrame.UnitDebuff = function (unit, index, filter)
   end
 
   -- check cache for add new debuff
-  if (not AuraBuffsCacheFrame.GetStorageValue(name, icon)) then
+  if (not AuraBuffsCacheFrame.GetStorageValue(icon)) then
     AuraBuffsCacheFrame.CreateStorageValue(name, icon, debuffType, rank);
   end
   
