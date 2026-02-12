@@ -18,7 +18,7 @@ end
 local _UnitDebuff, _UnitBuff = UnitDebuff, UnitBuff;
 
 AuraBuffsCacheFrame = CreateFrame("Frame", nil, UIParent);
-local flatStorage;
+local flatStorage = {};
 
 local function InitAddonStorage()
   if (not ABCache_Storage) then

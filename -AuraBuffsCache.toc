@@ -2,7 +2,7 @@
 ## Title: !AuraBuffsCache
 ## Author: Andrgit
 ## Notes: Fixed limit debuffs for vanila clients
-## Version: 1.0.3
+## Version: 1.0.4
 ## SavedVariables: ABCache_Storage
 
 -AuraBuffsCache.lua
